@@ -1,18 +1,18 @@
+
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Scan, Activity, Zap, ShieldCheck, Cpu, Car, Wifi, Database, Printer } from 'lucide-react';
 
-// --- YOUR CONFIGURATION ---
+// --- YOUR NEW CONFIGURATION (Updated) ---
 const firebaseConfig = {
-  apiKey: "AIzaSyAZq49d8HxmGO_ERZqB6LC2o8ToT1GczbU",
-  authDomain: "motorhouse-af894.firebaseapp.com",
-  databaseURL: "https://motorhouse-af894-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "motorhouse-af894",
-  storageBucket: "motorhouse-af894.firebasestorage.app",
-  messagingSenderId: "491547998232",
-  appId: "1:491547998232:web:a86795a4755ca59709eb6d"
+  apiKey: "AIzaSyABVKBnACuuKUK-YPVc4YCljcYUxR6LQPs",
+  authDomain: "motorhousehud.firebaseapp.com",
+  projectId: "motorhousehud",
+  storageBucket: "motorhousehud.firebasestorage.app",
+  messagingSenderId: "369236673914",
+  appId: "1:369236673914:web:210e2dbb1b0841808402c3"
 };
 
 // Initialize Firebase
@@ -26,7 +26,9 @@ export default function App() {
 
   // --- 1. REAL-TIME DATABASE LISTENER ---
   useEffect(() => {
+    // Connects to the 'jobs' collection in your Firestore
     const q = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const liveJobs = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -35,14 +37,17 @@ export default function App() {
       setJobs(liveJobs);
     }, (error) => {
       console.error("Database Error:", error);
+      // If permission fails, show reduced health
       setSystemHealth(40);
     });
+
     return () => unsubscribe();
   }, []);
 
   // --- 2. INVOICE GENERATOR ---
   const printInvoice = (job) => {
     const printWindow = window.open('', '', 'width=800,height=600');
+
     const htmlContent = `
       <html>
       <head>
@@ -65,12 +70,13 @@ export default function App() {
       </head>
       <body>
         <div class="header">
-          <div class="logo">MOTOR HOUSE <span>BEDFORD</span></div>
+          <div class="logo">MOTOR HOUSE <span>HUD</span></div>
           <div class="company-info">
             87 High Street, Clapham, Bedford, MK41 6AQ<br>
             Tel: 01234 225570 | FCA No: 1000208
           </div>
         </div>
+
         <div style="display:flex; justify-content:space-between; margin-bottom:40px;">
           <div class="box">
             <h3>Bill To</h3>
@@ -85,27 +91,43 @@ export default function App() {
             Status: ${job.status}
           </div>
         </div>
+
         <table class="table">
-          <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+          <thead>
+            <tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+          </thead>
           <tbody>
             <tr><td>${job.service || 'Standard Service & Diagnostics'}</td><td>1</td><td>£150.00</td><td>£150.00</td></tr>
             <tr><td>Oil Filter & Consumables</td><td>1</td><td>£25.00</td><td>£25.00</td></tr>
-            <tr><td>Environmental Disposal Fee</td><td>1</td><td>£5.00</td><td>£5.00</td></tr>
+             <tr><td>Environmental Disposal Fee</td><td>1</td><td>£5.00</td><td>£5.00</td></tr>
           </tbody>
         </table>
+
         <div class="total-section">
           <div class="grand-total">Total: £216.00</div>
         </div>
-        <div class="footer">Motor House Beds Ltd is authorised and regulated by the Financial Conduct Authority.</div>
-        <script>window.onload = function() { window.print(); }</script>
-      </body></html>`;
+
+        <div class="footer">
+          Motor House Beds Ltd is authorised and regulated by the Financial Conduct Authority.<br>
+          Thank you for your business.
+        </div>
+
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   };
 
-  // --- 3. AI SIMULATION ---
+  // --- 3. AI SIMULATION (Writes to 'motorhousehud') ---
   const triggerAIScan = async () => {
     setScanning(true);
+
+    // Simulate camera delay
     setTimeout(async () => {
         const mockVehicles = [
             { reg: 'MH24 HUD', make: 'Porsche', model: '911 GT3 RS', status: 'Analysis Required' },
@@ -113,16 +135,19 @@ export default function App() {
             { reg: 'TS23 LLA', make: 'Tesla', model: 'Model X Plaid', status: 'Charging' }
         ];
         const randomCar = mockVehicles[Math.floor(Math.random() * mockVehicles.length)];
+
         try {
             await addDoc(collection(db, "jobs"), {
                 reg: randomCar.reg,
                 make: randomCar.make,
                 model: randomCar.model,
                 status: randomCar.status,
-                health: Math.floor(Math.random() * 40) + 60,
+                health: Math.floor(Math.random() * 40) + 60, // Random health 60-100%
                 createdAt: serverTimestamp()
             });
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error("Error writing to DB:", e);
+        }
         setScanning(false);
     }, 1500);
   };
@@ -143,14 +168,14 @@ export default function App() {
                 <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
                     MOTOR HOUSE <span className="text-cyan-400">HUD</span>
                 </h1>
-                <p className="text-[10px] text-cyan-600 font-mono tracking-[0.2em] uppercase">Mobile Access // Online</p>
+                <p className="text-[10px] text-cyan-600 font-mono tracking-[0.2em] uppercase">Project: motorhousehud</p>
             </div>
         </div>
 
         <div className="flex gap-4 font-mono text-xs text-slate-400 bg-slate-900/50 p-2 rounded-lg border border-slate-800 backdrop-blur-sm w-full md:w-auto justify-between md:justify-start">
             <div className="flex items-center gap-2">
                 <Database size={14} className={jobs.length > 0 ? "text-green-500" : "text-slate-600"} />
-                <span>DB: {jobs.length > 0 ? 'ON' : 'WAITING'}</span>
+                <span>DB: {jobs.length > 0 ? 'ONLINE' : 'WAITING'}</span>
             </div>
             <div className="flex items-center gap-2">
                 <Zap size={14} className={systemHealth > 80 ? "text-cyan-400" : "text-red-500"} />
@@ -162,7 +187,7 @@ export default function App() {
       {/* DASHBOARD GRID */}
       <main className="grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-10">
 
-        {/* CONTROL PANEL (Top on Mobile, Left on Desktop) */}
+        {/* CONTROL PANEL */}
         <div className="lg:col-span-1 space-y-4 md:space-y-6 order-1">
             <div className="bg-slate-900/60 backdrop-blur-xl p-6 rounded-2xl border border-cyan-500/30 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
@@ -190,7 +215,7 @@ export default function App() {
             </div>
         </div>
 
-        {/* LIVE FEED (Bottom on Mobile, Right on Desktop) */}
+        {/* LIVE FEED */}
         <div className="lg:col-span-3 order-2">
             <div className="flex justify-between items-end mb-4">
                 <h2 className="text-xl font-bold flex items-center gap-2 text-white">
@@ -202,7 +227,7 @@ export default function App() {
                 </span>
             </div>
 
-            <div className="space-y-3 pb-20 md:pb-0 h-[500px] md:h-[600px] overflow-y-auto pr-1">
+            <div className="space-y-3 pb-20 md:pb-0 h-[500px] md:h-[600px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-cyan-900">
                 <AnimatePresence>
                     {jobs.length === 0 && (
                         <div className="text-center text-slate-600 py-20">
@@ -234,6 +259,7 @@ export default function App() {
                                 </div>
 
                                 <div className="flex items-center gap-2">
+                                  {/* Print Button */}
                                   <button
                                       onClick={(e) => { e.stopPropagation(); printInvoice(job); }}
                                       className="p-3 bg-cyan-950/50 hover:bg-cyan-500 hover:text-black rounded-lg transition text-cyan-400 border border-cyan-500/20"
@@ -241,6 +267,7 @@ export default function App() {
                                   >
                                       <Printer size={18} />
                                   </button>
+
                                   <ShieldCheck className="text-slate-600 group-hover:text-cyan-400 transition-colors" />
                                 </div>
                             </div>
